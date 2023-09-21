@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+concurrently -k -c auto -n DB,SERVER "bash ./dev-db" "go run ../"
