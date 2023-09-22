@@ -14,7 +14,7 @@ func isDevMode() bool {
 
 func getDevLink(c *fiber.Ctx, devPortQueryName string, domain string, path string, queryParams map[string]string) string {
 	if isDevMode() {
-		queryParams["testingPort"] = getPort()
+		queryParams["testingPort"] = os.Getenv("PORT")
 	}
 
 	queryString := constructQueryString(queryParams)

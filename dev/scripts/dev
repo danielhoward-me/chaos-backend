@@ -1,0 +1,17 @@
+#!/bin/bash
+
+cd "$( dirname "${BASH_SOURCE[0]}" )"
+
+export PORT="3000"
+export PGUSER="chaos"
+export PGPASSWORD="qwerty123"
+export PGHOST="localhost"
+export PGPORT="5432"
+export PGDATABASE="chaos"
+export PGSSLMODE="disable"
+
+# If this fails, you may need to install global packages using:
+#  - `npm i -g concurrently`
+#  - `npm i -g wait-on`
+#  - `npm i -g nodemon`
+concurrently -k -c auto -n DB,SERVER "bash ./dev-db" "wait-on tcp:5432 && nodemon --ext go --watch ../../*.* --exec go run ../../"
