@@ -1,6 +1,7 @@
 CREATE TABLE saves (
 	id SERIAL PRIMARY KEY,
 	user_id UUID,
+	name TEXT NOT NULL,
 	data JSON NOT NULL,
 	screenshot TEXT
 );

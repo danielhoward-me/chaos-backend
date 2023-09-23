@@ -2,11 +2,11 @@
 
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
-export PORT="3000"
+export PORT="3002"
 export PGUSER="chaos"
 export PGPASSWORD="qwerty123"
 export PGHOST="localhost"
-export PGPORT="5432"
+export PGPORT="5433"
 export PGDATABASE="chaos"
 export PGSSLMODE="disable"
 
@@ -14,4 +14,4 @@ export PGSSLMODE="disable"
 #  - `npm i -g concurrently`
 #  - `npm i -g wait-on`
 #  - `npm i -g nodemon`
-concurrently -k -c auto -n DB,SERVER "bash ./dev-db" "wait-on tcp:5432 && nodemon --ext go --watch ../../*.* --exec go run ../../"
+concurrently -k -c auto -n DB,SERVER "docker compose -f ../../compose.dev.yml up --build" "wait-on tcp:5433 && nodemon --ext go --watch ../../**/*.* --exec go run ../../"
