@@ -10,14 +10,8 @@ import (
 func createServer() {
 	app := fiber.New()
 
-	app.Get("/login", func(c *fiber.Ctx) error {
-		return c.Redirect(getDevLink(c, "ssoDevPort", "sso.danielhoward.me", "/auth", map[string]string{
-			"target": "chaos",
-		}))
-	})
-
-	app.Get("/test", func(c *fiber.Ctx) error {
-		rows, err := db.Query("SELECT user_id, data FROM saves")
+	app.Get("/presets", func(c *fiber.Ctx) error {
+		rows, err := db.Query("SELECT data, screenshot FROM saves WHERE user_id IS NULL")
 		if err != nil {
 			panic(err)
 		}
