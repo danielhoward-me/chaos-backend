@@ -9,12 +9,17 @@ import (
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 var bearerRegex = regexp.MustCompile("^Bearer ")
 
 func createServer() {
 	app := fiber.New()
+
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "https://chaos.danielhoward.me, http://local.danielhoward.me:3001",
+	}))
 
 	app.Get("/presets", func(c *fiber.Ctx) error {
 		presets, err := saves.Get(db, "")
