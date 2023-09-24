@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/danielhoward-me/chaos-backend/saves"
+	"github.com/danielhoward-me/chaos-backend/screenshot"
 	"github.com/danielhoward-me/chaos-backend/sso"
 
 	"fmt"
@@ -29,6 +30,17 @@ func createServer() {
 		}
 
 		return c.JSON(presets)
+	})
+
+	app.Get("/screenshot/:hash.jpg", func(c *fiber.Ctx) error {
+		hash := c.Params("hash")
+
+		if !screenshot.Exists(hash) {
+			c.Set(fiber.HeaderContentType, "image/jpeg")
+			return c.Send(screenshot.PlaceholderImage)
+		}
+
+		return c.SendFile(screenshot.Path(hash))
 	})
 
 	app.Use(func(c *fiber.Ctx) error {
@@ -69,6 +81,27 @@ func createServer() {
 			"account": account,
 			"saves":   userSaves,
 		})
+	})
+
+	app.Get("/delete", func(c *fiber.Ctx) error {
+		account := c.Locals("account").(sso.Account)
+
+		id := c.QueryInt("id")
+		if id == 0 {
+			return c.Status(fiber.StatusBadRequest).SendString("id should be an integer")
+		}
+
+		completed, err := saves.Delete(db, id, account.UserId)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		if completed {
+			return c.JSON(map[string]bool{"ok": true})
+		} else {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
 	})
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))

@@ -3,6 +3,7 @@
 cd "$( dirname "${BASH_SOURCE[0]}" )"
 
 export PORT="3002"
+export SCREENSHOTPATH="./../../screenshot-store"
 export PGUSER="chaos"
 export PGPASSWORD="qwerty123"
 export PGHOST="localhost"
