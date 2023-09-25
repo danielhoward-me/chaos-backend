@@ -1,8 +1,11 @@
 package saves
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"fmt"
+	"strconv"
 )
 
 type Save struct {
@@ -10,6 +13,11 @@ type Save struct {
 	Name       string `json:"name"`
 	Data       string `json:"data"`
 	Screenshot string `json:"screenshot,omitempty"`
+}
+
+type RequestSave struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
 }
 
 func Get(db *sql.DB, userId string) ([]Save, error) {
@@ -51,4 +59,31 @@ func Delete(db *sql.DB, id int, userId string) (completed bool, err error) {
 
 	completed = rowsCount != 0
 	return
+}
+
+func Create(db *sql.DB, name string, data string, userId string) (save Save, err error) {
+	res, err := db.Exec("INSERT INTO saves (name, data, user_id) VALUES ($1, $2, $3)", name, data, userId)
+	if err != nil {
+		err = fmt.Errorf("there was an error when creating a save: %s", err)
+		return
+	}
+
+	id, err := res.LastInsertId()
+	if err != nil {
+		err = fmt.Errorf("there was an error when getting a new save's ID: %s", err)
+		return
+	}
+
+	save = Save{
+		Id:         strconv.FormatInt(id, 10),
+		Name:       name,
+		Data:       data,
+		Screenshot: getScreenshotHash(data),
+	}
+	return
+}
+
+func getScreenshotHash(data string) string {
+	hash := md5.Sum([]byte(data))
+	return hex.EncodeToString(hash[:])
 }

@@ -104,5 +104,22 @@ func createServer() {
 		}
 	})
 
+	app.Post("/create", func(c *fiber.Ctx) error {
+		account := c.Locals("account").(sso.Account)
+
+		var body saves.RequestSave
+		if err := c.BodyParser(&body); err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		save, err := saves.Create(db, body.Name, body.Data, account.UserId)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		return c.JSON(save)
+	})
+
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))
 }
