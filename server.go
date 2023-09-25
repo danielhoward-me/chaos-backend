@@ -53,13 +53,15 @@ func createServer() {
 		data := body.Data
 		hash := screenshotUtils.Hash(data)
 
+		waitTime := 0
 		if !screenshotUtils.Exists(hash) {
-			go screenshot.QueueGeneration(data)
+			screenshot.QueueGeneration(data)
+			waitTime = screenshot.GetEstimatedWaitTime()
 		}
 
 		return c.JSON(map[string]any{
 			"hash":           hash,
-			"screenshotTime": screenshot.GetEstimatedWaitTime(),
+			"screenshotTime": waitTime,
 		})
 	})
 
@@ -122,13 +124,15 @@ func createServer() {
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
+		waitTime := 0
 		if !screenshotUtils.Exists(save.Screenshot) {
 			screenshot.QueueGeneration(save.Data)
+			waitTime = screenshot.GetEstimatedWaitTime()
 		}
 
 		return c.JSON(map[string]any{
 			"save":           save,
-			"screenshotTime": screenshot.GetEstimatedWaitTime(),
+			"screenshotTime": waitTime,
 		})
 	})
 

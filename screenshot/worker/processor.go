@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"time"
-
 	"github.com/danielhoward-me/chaos-backend/screenshot/utils"
 
 	"context"
@@ -76,7 +74,6 @@ func getTasks(url string, data string, buf *[]byte) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(url),
 		chromedp.Evaluate(fmt.Sprintf("window.prepareScreenshot(`%s`)", data), nil),
-		chromedp.Sleep(1 * time.Second),
 		chromedp.FullScreenshot(buf, 99),
 	}
 }
