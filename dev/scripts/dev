@@ -11,8 +11,14 @@ export PGPORT="5433"
 export PGDATABASE="chaos"
 export PGSSLMODE="disable"
 
+EXTRA_ARGS=""
+if [ "$#" -gt 0 ]; then
+	EXTRA_ARGS="$EXTRA_ARGS -chaos-dev-port $1"
+fi
+
+
 # If this fails, you may need to install global packages using:
 #  - `npm i -g concurrently`
 #  - `npm i -g wait-on`
 #  - `npm i -g nodemon`
-concurrently -k -c auto -n DB,SERVER "docker compose -f ../../compose.dev.yml up --build" "wait-on tcp:5433 && nodemon --ext go --watch ../../**/*.* --exec go run ../../"
+concurrently -k -c auto -n DB,SERVER "docker compose -f ../../compose.dev.yml up --build" "wait-on tcp:5433 && nodemon --ignore ./../../screenshot-store/ --ext go --watch ../../**/*.* --exec go run ../../ $EXTRA_ARGS"

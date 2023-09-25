@@ -1,11 +1,10 @@
 package saves
 
 import (
-	"crypto/md5"
+	screenshotUtils "github.com/danielhoward-me/chaos-backend/screenshot/utils"
+
 	"database/sql"
-	"encoding/hex"
 	"fmt"
-	"strconv"
 )
 
 type Save struct {
@@ -62,28 +61,19 @@ func Delete(db *sql.DB, id int, userId string) (completed bool, err error) {
 }
 
 func Create(db *sql.DB, name string, data string, userId string) (save Save, err error) {
-	res, err := db.Exec("INSERT INTO saves (name, data, user_id) VALUES ($1, $2, $3)", name, data, userId)
-	if err != nil {
+	var id string
+
+	row := db.QueryRow("INSERT INTO saves (name, data, user_id) VALUES ($1, $2, $3) RETURNING id", name, data, userId)
+	if err = row.Scan(&id); err != nil {
 		err = fmt.Errorf("there was an error when creating a save: %s", err)
 		return
 	}
 
-	id, err := res.LastInsertId()
-	if err != nil {
-		err = fmt.Errorf("there was an error when getting a new save's ID: %s", err)
-		return
-	}
-
 	save = Save{
-		Id:         strconv.FormatInt(id, 10),
+		Id:         id,
 		Name:       name,
 		Data:       data,
-		Screenshot: getScreenshotHash(data),
+		Screenshot: screenshotUtils.Hash(data),
 	}
 	return
-}
-
-func getScreenshotHash(data string) string {
-	hash := md5.Sum([]byte(data))
-	return hex.EncodeToString(hash[:])
 }

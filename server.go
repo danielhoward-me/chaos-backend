@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/danielhoward-me/chaos-backend/saves"
 	"github.com/danielhoward-me/chaos-backend/screenshot"
+	screenshotUtils "github.com/danielhoward-me/chaos-backend/screenshot/utils"
 	"github.com/danielhoward-me/chaos-backend/sso"
 
 	"fmt"
@@ -35,42 +36,39 @@ func createServer() {
 	app.Get("/screenshot/:hash.jpg", func(c *fiber.Ctx) error {
 		hash := c.Params("hash")
 
-		if !screenshot.Exists(hash) {
+		if !screenshotUtils.Exists(hash) {
 			c.Set(fiber.HeaderContentType, "image/jpeg")
 			return c.Send(screenshot.PlaceholderImage)
 		}
 
-		return c.SendFile(screenshot.Path(hash))
+		return c.SendFile(screenshotUtils.Path(hash))
 	})
 
-	app.Use(func(c *fiber.Ctx) error {
-		authorisation := bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], "")
-		if authorisation == "" {
-			return c.SendStatus(fiber.StatusUnauthorized)
+	app.Post("/screenshot", func(c *fiber.Ctx) error {
+		body := screenshot.Request{}
+		if err := c.BodyParser(&body); err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
 		}
 
-		ssoDevPort := c.QueryInt("ssodevport")
-		if ssoDevPort != 0 && os.Getenv("NODE_ENV") == "production" {
-			return c.Status(fiber.StatusBadRequest).SendString("ssodevport can only be used in development")
+		data := body.Data
+		hash := screenshotUtils.Hash(data)
+
+		if !screenshotUtils.Exists(hash) {
+			go screenshot.QueueGeneration(data)
 		}
 
-		account, exists, err := sso.Get(authorisation, ssoDevPort)
-		if err != nil {
-			fmt.Println(err)
-			return c.SendStatus(fiber.StatusInternalServerError)
-		}
-
-		if !exists {
-			return c.SendStatus(fiber.StatusUnauthorized)
-		}
-
-		c.Locals("account", account)
-		return c.Next()
-
+		return c.JSON(map[string]any{
+			"hash":           hash,
+			"screenshotTime": screenshot.GetEstimatedWaitTime(),
+		})
 	})
 
 	app.Get("/account", func(c *fiber.Ctx) error {
-		account := c.Locals("account").(sso.Account)
+		account, err := getAccount(c)
+		if err != nil {
+			return err
+		}
+
 		userSaves, err := saves.Get(db, account.UserId)
 		if err != nil {
 			fmt.Println(err)
@@ -84,7 +82,10 @@ func createServer() {
 	})
 
 	app.Get("/delete", func(c *fiber.Ctx) error {
-		account := c.Locals("account").(sso.Account)
+		account, err := getAccount(c)
+		if err != nil {
+			return err
+		}
 
 		id := c.QueryInt("id")
 		if id == 0 {
@@ -105,7 +106,10 @@ func createServer() {
 	})
 
 	app.Post("/create", func(c *fiber.Ctx) error {
-		account := c.Locals("account").(sso.Account)
+		account, err := getAccount(c)
+		if err != nil {
+			return err
+		}
 
 		var body saves.RequestSave
 		if err := c.BodyParser(&body); err != nil {
@@ -118,8 +122,39 @@ func createServer() {
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
-		return c.JSON(save)
+		if !screenshotUtils.Exists(save.Screenshot) {
+			screenshot.QueueGeneration(save.Data)
+		}
+
+		return c.JSON(map[string]any{
+			"save":           save,
+			"screenshotTime": screenshot.GetEstimatedWaitTime(),
+		})
 	})
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))
+}
+
+func getAccount(c *fiber.Ctx) (sso.Account, error) {
+	authorisation := bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], "")
+	if authorisation == "" {
+		return sso.Account{}, c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	ssoDevPort := c.QueryInt("ssodevport")
+	if ssoDevPort != 0 && os.Getenv("NODE_ENV") == "production" {
+		return sso.Account{}, c.Status(fiber.StatusBadRequest).SendString("ssodevport can only be used in development")
+	}
+
+	account, exists, err := sso.Get(authorisation, ssoDevPort)
+	if err != nil {
+		fmt.Println(err)
+		return sso.Account{}, c.SendStatus(fiber.StatusInternalServerError)
+	}
+
+	if !exists {
+		return sso.Account{}, c.SendStatus(fiber.StatusUnauthorized)
+	}
+
+	return account, nil
 }

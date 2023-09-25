@@ -1,22 +1,22 @@
 package screenshot
 
 import (
+	"github.com/danielhoward-me/chaos-backend/screenshot/worker"
+
 	_ "embed"
-	"fmt"
-	"os"
 )
 
-var screenshotPath = os.Getenv("SCREENSHOTPATH")
+type Request struct {
+	Data string `json:"data"`
+}
 
 //go:embed placeholder.jpg
 var PlaceholderImage []byte
 
-func Path(hash string) string {
-	return fmt.Sprintf("%s/%s.jpg", screenshotPath, hash)
+func QueueGeneration(data string) {
+	worker.AddJob(data)
 }
 
-func Exists(hash string) bool {
-	path := fmt.Sprintf("%s/%s.jpg", screenshotPath, hash)
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
+func GetEstimatedWaitTime() int {
+	return worker.GetEstimatedWaitTime()
 }
