@@ -32,13 +32,18 @@ func run() {
 		var job Job
 		job, jobs = jobs[0], jobs[1:]
 
+		currentlyProcessing = job.Hash
+
 		fmt.Printf("Running screenshot job for %s\n", job.Hash)
 		if err := process(job, ctx); err != nil {
 			fmt.Println(err)
+			currentlyProcessing = ""
+			failedScreenshots[job.Hash] = true
 			continue
 		}
 
 		fmt.Printf("Finished screenshot job for %s\n", job.Hash)
+		currentlyProcessing = ""
 	}
 
 	workerRunning = false

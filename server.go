@@ -57,6 +57,18 @@ func createServer() {
 		})
 	})
 
+	app.Get("/screenshot/status", func(c *fiber.Ctx) error {
+		hash := c.Query("hash")
+
+		if hash == "" {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		return c.JSON(map[string]any{
+			"status": screenshot.GetStatus(hash),
+		})
+	})
+
 	app.Get("/account", func(c *fiber.Ctx) error {
 		account, err := getAccount(c)
 		if err != nil {
