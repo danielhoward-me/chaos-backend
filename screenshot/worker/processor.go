@@ -12,6 +12,7 @@ import (
 
 func run() {
 	workerRunning = true
+	fmt.Println("Starting screenshot worker")
 
 	options := append(
 		chromedp.DefaultExecAllocatorOptions[:],
@@ -31,16 +32,17 @@ func run() {
 		var job Job
 		job, jobs = jobs[0], jobs[1:]
 
-		fmt.Printf("Running screenshot job for %s\n", job.hash)
+		fmt.Printf("Running screenshot job for %s\n", job.Hash)
 		if err := process(job, ctx); err != nil {
 			fmt.Println(err)
 			continue
 		}
 
-		fmt.Printf("Finished screenshot job for %s\n", job.hash)
+		fmt.Printf("Finished screenshot job for %s\n", job.Hash)
 	}
 
 	workerRunning = false
+	fmt.Println("Exiting screenshot worker")
 }
 
 func process(job Job, ctx context.Context) error {
@@ -48,14 +50,14 @@ func process(job Job, ctx context.Context) error {
 
 	var buf []byte
 
-	tasks := getTasks(url, job.data, &buf)
+	tasks := getTasks(url, job.Data, &buf)
 	if err := chromedp.Run(ctx, tasks); err != nil {
-		return fmt.Errorf("failed to run screenshot tasks for %s: %s", job.hash, err)
+		return fmt.Errorf("failed to run screenshot tasks for %s: %s", job.Hash, err)
 	}
 
-	path := utils.Path(job.hash)
+	path := utils.Path(job.Hash)
 	if err := os.WriteFile(path, buf, os.ModePerm); err != nil {
-		return fmt.Errorf("failed to write screenshot file for %s: %s", job.hash, err)
+		return fmt.Errorf("failed to write screenshot file for %s: %s", job.Hash, err)
 	}
 
 	return nil

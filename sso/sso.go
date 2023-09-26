@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+var ssoDevPort int
+
 type Account struct {
 	UserId         string `json:"userId"`
 	Username       string `json:"username"`
@@ -14,7 +16,11 @@ type Account struct {
 	ProfilePicture string `json:"profilePicture"`
 }
 
-func Get(authorisation string, ssoDevPort int) (account Account, exists bool, err error) {
+func Init(givenSsoDevPort int) {
+	ssoDevPort = givenSsoDevPort
+}
+
+func Get(authorisation string) (account Account, exists bool, err error) {
 	ssoOrigin := "https://sso.danielhoward.me"
 	if ssoDevPort != 0 {
 		ssoOrigin = fmt.Sprintf("http://local.danielhoward.me:%d", ssoDevPort)

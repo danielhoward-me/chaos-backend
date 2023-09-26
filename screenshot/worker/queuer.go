@@ -1,8 +1,6 @@
 package worker
 
 import (
-	"github.com/danielhoward-me/chaos-backend/screenshot/utils"
-
 	"fmt"
 )
 
@@ -11,22 +9,18 @@ var jobs []Job
 var workerRunning = false
 
 type Job struct {
-	data string
-	hash string
+	Data string
+	Hash string
 }
 
 func Init(givenChaosDevPort int) {
 	chaosDevPort = givenChaosDevPort
 }
 
-func AddJob(data string) {
-	job := Job{
-		data: data,
-		hash: utils.Hash(data),
-	}
+func AddJob(job Job) {
 	jobs = append(jobs, job)
 
-	fmt.Printf("Queuing screenshot job for %s\n", job.hash)
+	fmt.Printf("Queuing screenshot job for %s\n", job.Hash)
 
 	if !workerRunning {
 		go run()

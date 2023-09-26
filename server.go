@@ -51,16 +51,10 @@ func createServer() {
 		}
 
 		data := body.Data
-		hash := screenshotUtils.Hash(data)
-
-		waitTime := 0
-		if !screenshotUtils.Exists(hash) {
-			screenshot.QueueGeneration(data)
-			waitTime = screenshot.GetEstimatedWaitTime()
-		}
+		waitTime := screenshot.Queue(data)
 
 		return c.JSON(map[string]any{
-			"hash":           hash,
+			"hash":           screenshotUtils.Hash(data),
 			"screenshotTime": waitTime,
 		})
 	})
@@ -124,11 +118,7 @@ func createServer() {
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
-		waitTime := 0
-		if !screenshotUtils.Exists(save.Screenshot) {
-			screenshot.QueueGeneration(save.Data)
-			waitTime = screenshot.GetEstimatedWaitTime()
-		}
+		waitTime := screenshot.Queue(save.Data)
 
 		return c.JSON(map[string]any{
 			"save":           save,
@@ -145,12 +135,7 @@ func getAccount(c *fiber.Ctx) (sso.Account, error) {
 		return sso.Account{}, c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	ssoDevPort := c.QueryInt("ssodevport")
-	if ssoDevPort != 0 && os.Getenv("NODE_ENV") == "production" {
-		return sso.Account{}, c.Status(fiber.StatusBadRequest).SendString("ssodevport can only be used in development")
-	}
-
-	account, exists, err := sso.Get(authorisation, ssoDevPort)
+	account, exists, err := sso.Get(authorisation)
 	if err != nil {
 		fmt.Println(err)
 		return sso.Account{}, c.SendStatus(fiber.StatusInternalServerError)

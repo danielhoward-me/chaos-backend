@@ -13,9 +13,11 @@ export PGSSLMODE="disable"
 
 EXTRA_ARGS=""
 if [ "$#" -gt 0 ]; then
-	EXTRA_ARGS="$EXTRA_ARGS -chaos-dev-port $1"
+	EXTRA_ARGS="$EXTRA_ARGS -sso-dev-port $1"
 fi
-
+if [ "$#" -gt 1 ]; then
+	EXTRA_ARGS="$EXTRA_ARGS -chaos-dev-port $2"
+fi
 
 # If this fails, you may need to install global packages using:
 #  - `npm i -g concurrently`
