@@ -3,32 +3,21 @@ package screenshot
 import (
 	"github.com/danielhoward-me/chaos-backend/screenshot/utils"
 	"github.com/danielhoward-me/chaos-backend/screenshot/worker"
-
-	_ "embed"
 )
 
 type Request struct {
 	Data string `json:"data"`
 }
 
-//go:embed placeholder.jpg
-var PlaceholderImage []byte
-
-func Queue(data string) int {
+func Queue(data string) {
 	hash := utils.Hash(data)
 
-	waitTime := 0
-	if !utils.Exists(hash) {
-		waitTime = worker.GetEstimatedWaitTime()
-		worker.AddJob(worker.Job{
-			Data: data,
-			Hash: hash,
-		})
+	if utils.Exists(hash) {
+		return
 	}
 
-	return waitTime
-}
-
-func GetEstimatedWaitTime() int {
-	return worker.GetEstimatedWaitTime()
+	worker.AddJob(worker.Job{
+		Data: data,
+		Hash: hash,
+	})
 }

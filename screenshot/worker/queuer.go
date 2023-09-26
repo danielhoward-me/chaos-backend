@@ -26,7 +26,3 @@ func AddJob(job Job) {
 		go run()
 	}
 }
-
-func GetEstimatedWaitTime() int {
-	return len(jobs) * 10000
-}
