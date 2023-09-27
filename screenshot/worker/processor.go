@@ -60,6 +60,11 @@ func process(job Job, ctx context.Context) error {
 		return fmt.Errorf("failed to run screenshot tasks for %s: %s", job.Hash, err)
 	}
 
+	buf, err := convertToJpg(buf)
+	if err != nil {
+		return fmt.Errorf("failed to convert png to jpg image: %s", err)
+	}
+
 	path := utils.Path(job.Hash)
 	if err := os.WriteFile(path, buf, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to write screenshot file for %s: %s", job.Hash, err)
