@@ -27,6 +27,7 @@ func AddJob(job Job) {
 	fmt.Printf("Queuing screenshot job for %s\n", job.Hash)
 
 	if !workerRunning {
+		workerRunning = true
 		go run()
 	}
 }

@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/chromedp/cdproto/runtime"
 	"github.com/chromedp/chromedp"
 )
 
 func run() {
-	workerRunning = true
 	fmt.Println("Starting screenshot worker")
 
 	options := append(
@@ -80,7 +80,9 @@ func getUrl() string {
 func getTasks(url string, data string, buf *[]byte) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(url),
-		chromedp.Evaluate(fmt.Sprintf("window.prepareScreenshot(`%s`)", data), nil),
-		chromedp.FullScreenshot(buf, 99),
+		chromedp.Evaluate(fmt.Sprintf("window.prepareScreenshot(`%s`)", data), nil, func(p *runtime.EvaluateParams) *runtime.EvaluateParams {
+			return p.WithAwaitPromise(true)
+		}),
+		chromedp.Screenshot("#canvas", buf),
 	}
 }
