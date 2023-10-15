@@ -6,19 +6,13 @@ import (
 	screenshotUtils "github.com/danielhoward-me/chaos-backend/screenshot/utils"
 	"github.com/danielhoward-me/chaos-backend/sso"
 
-	"embed"
 	"fmt"
-	"net/http"
 	"os"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
-
-//go:embed public/*
-var publicFile embed.FS
 
 var bearerRegex = regexp.MustCompile("^Bearer ")
 
@@ -140,11 +134,6 @@ func createServer() {
 			"save": save,
 		})
 	})
-
-	app.Get("/*", filesystem.New(filesystem.Config{
-		Root:       http.FS(publicFile),
-		PathPrefix: "public",
-	}))
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))
 }
