@@ -6,13 +6,19 @@ import (
 	screenshotUtils "github.com/danielhoward-me/chaos-backend/screenshot/utils"
 	"github.com/danielhoward-me/chaos-backend/sso"
 
+	"embed"
 	"fmt"
+	"net/http"
 	"os"
 	"regexp"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 )
+
+//go:embed public/*
+var publicFile embed.FS
 
 var bearerRegex = regexp.MustCompile("^Bearer ")
 
@@ -70,8 +76,8 @@ func createServer() {
 	})
 
 	app.Get("/account", func(c *fiber.Ctx) error {
-		account, err := getAccount(c)
-		if err != nil {
+		account, failed, err := getAccount(c)
+		if failed {
 			return err
 		}
 
@@ -88,8 +94,8 @@ func createServer() {
 	})
 
 	app.Get("/delete", func(c *fiber.Ctx) error {
-		account, err := getAccount(c)
-		if err != nil {
+		account, failed, err := getAccount(c)
+		if failed {
 			return err
 		}
 
@@ -112,8 +118,8 @@ func createServer() {
 	})
 
 	app.Post("/create", func(c *fiber.Ctx) error {
-		account, err := getAccount(c)
-		if err != nil {
+		account, failed, err := getAccount(c)
+		if failed {
 			return err
 		}
 
@@ -135,24 +141,29 @@ func createServer() {
 		})
 	})
 
+	app.Get("/*", filesystem.New(filesystem.Config{
+		Root:       http.FS(publicFile),
+		PathPrefix: "public",
+	}))
+
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))
 }
 
-func getAccount(c *fiber.Ctx) (sso.Account, error) {
+func getAccount(c *fiber.Ctx) (sso.Account, bool, error) {
 	authorisation := bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], "")
 	if authorisation == "" {
-		return sso.Account{}, c.SendStatus(fiber.StatusUnauthorized)
+		return sso.Account{}, true, c.SendStatus(fiber.StatusUnauthorized)
 	}
 
 	account, exists, err := sso.Get(authorisation)
 	if err != nil {
 		fmt.Println(err)
-		return sso.Account{}, c.SendStatus(fiber.StatusInternalServerError)
+		return sso.Account{}, true, c.SendStatus(fiber.StatusInternalServerError)
 	}
 
 	if !exists {
-		return sso.Account{}, c.SendStatus(fiber.StatusUnauthorized)
+		return sso.Account{}, true, c.SendStatus(fiber.StatusUnauthorized)
 	}
 
-	return account, nil
+	return account, false, nil
 }

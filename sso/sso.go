@@ -14,6 +14,7 @@ type Account struct {
 	Username       string `json:"username"`
 	Email          string `json:"email"`
 	ProfilePicture string `json:"profilePicture"`
+	Admin          bool   `json:"admin"`
 }
 
 func Init(givenSsoDevPort int) {
