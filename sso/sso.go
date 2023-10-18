@@ -62,4 +62,4 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 	return
 }
 
-func GetUser(id string) (account Account, exists bool, err error)
+// func GetUser(id string) (account Account, exists bool, err error)
