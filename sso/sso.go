@@ -61,3 +61,5 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 	exists = true
 	return
 }
+
+func GetUser(id string) (account Account, exists bool, err error)

@@ -15,3 +15,7 @@ CREATE TABLE saves (
 );
 CREATE INDEX idx_user_id ON saves (user_id);
 CREATE TRIGGER set_screenshot_value BEFORE INSERT ON saves FOR EACH ROW EXECUTE PROCEDURE insert_data_hash();
+
+CREATE TABLE admins (
+	id UUID PRIMARY KEY
+);
