@@ -38,13 +38,10 @@ func createServer() {
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
-		admin := account.Admin
-		if !admin {
-			admin, err = admins.IsAdmin(db, account.UserId)
-			if err != nil {
-				fmt.Println(err)
-				return c.SendStatus(fiber.StatusInternalServerError)
-			}
+		admin, err := admins.IsLocalAdmin(db, account)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
 		return c.JSON(map[string]interface{}{
@@ -79,7 +76,13 @@ func createServer() {
 			return c.Status(fiber.StatusBadRequest).SendString("id should be an integer")
 		}
 
-		completed, err := saves.Delete(db, id, account.UserId)
+		isAdmin, err := admins.IsLocalAdmin(db, account)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		completed, err := saves.Delete(db, id, account.UserId, isAdmin)
 		if err != nil {
 			fmt.Println(err)
 			return c.SendStatus(fiber.StatusInternalServerError)
@@ -103,7 +106,20 @@ func createServer() {
 			return c.SendStatus(fiber.StatusBadRequest)
 		}
 
-		save, err := saves.Create(db, body.Name, body.Data, account.UserId)
+		userId := account.UserId
+		if body.IsPreset {
+			isAdmin, err := admins.IsLocalAdmin(db, account)
+			if err != nil {
+				fmt.Println(err)
+				return c.SendStatus(fiber.StatusBadRequest)
+			}
+
+			if isAdmin {
+				userId = "0"
+			}
+		}
+
+		save, err := saves.Create(db, body.Name, body.Data, userId)
 		if err != nil {
 			fmt.Println(err)
 			return c.SendStatus(fiber.StatusInternalServerError)
@@ -152,16 +168,14 @@ func createServer() {
 		}
 
 		if save.UserId == "" {
-			if !account.Admin {
-				isAdmin, err := admins.IsAdmin(db, account.UserId)
-				if err != nil {
-					fmt.Println(err)
-					return c.SendStatus(fiber.StatusInternalServerError)
-				}
+			isAdmin, err := admins.IsLocalAdmin(db, account)
+			if err != nil {
+				fmt.Println(err)
+				return c.SendStatus(fiber.StatusInternalServerError)
+			}
 
-				if !isAdmin {
-					return c.SendStatus(fiber.StatusForbidden)
-				}
+			if !isAdmin {
+				return c.SendStatus(fiber.StatusForbidden)
 			}
 		} else if save.UserId != account.UserId {
 			return c.SendStatus(fiber.StatusForbidden)

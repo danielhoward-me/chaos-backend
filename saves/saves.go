@@ -18,8 +18,9 @@ type Save struct {
 }
 
 type RequestSave struct {
-	Name string `json:"name"`
-	Data string `json:"data"`
+	Name     string `json:"name"`
+	Data     string `json:"data"`
+	IsPreset bool   `json:"isPreset"`
 }
 
 func GetUsers(db *sql.DB, userId string) ([]Save, error) {
@@ -68,8 +69,13 @@ func Get(db *sql.DB, id int) (Save, error) {
 	return save, nil
 }
 
-func Delete(db *sql.DB, id int, userId string) (completed bool, err error) {
-	res, err := db.Exec("DELETE FROM saves WHERE user_id = $1 AND id = $2", userId, id)
+func Delete(db *sql.DB, id int, userId string, isAdmin bool) (completed bool, err error) {
+	userQuery := "user_id = $1"
+	if isAdmin {
+		userQuery = fmt.Sprintf("(%s OR user_id IS NULL)", userQuery)
+	}
+
+	res, err := db.Exec(fmt.Sprintf("DELETE FROM saves WHERE %s AND id = $2", userQuery), userId, id)
 	if err != nil {
 		err = fmt.Errorf("there was an error deleting getting saves from the database: %s", err)
 		return
@@ -88,7 +94,12 @@ func Delete(db *sql.DB, id int, userId string) (completed bool, err error) {
 func Create(db *sql.DB, name string, data string, userId string) (save Save, err error) {
 	var id string
 
-	row := db.QueryRow("INSERT INTO saves (name, data, user_id) VALUES ($1, $2, $3) RETURNING id", name, data, userId)
+	var userIdArg any = userId
+	if userId == "0" {
+		userIdArg = nil
+	}
+
+	row := db.QueryRow("INSERT INTO saves (name, data, user_id) VALUES ($1, $2, $3) RETURNING id", name, data, userIdArg)
 	if err = row.Scan(&id); err != nil {
 		err = fmt.Errorf("there was an error when creating a save: %s", err)
 		return

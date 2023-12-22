@@ -1,6 +1,8 @@
 package admins
 
 import (
+	"github.com/danielhoward-me/chaos-backend/sso"
+
 	"database/sql"
 	"fmt"
 )
@@ -14,4 +16,12 @@ func IsAdmin(db *sql.DB, id string) (exists bool, err error) {
 	}
 
 	return
+}
+
+func IsLocalAdmin(db *sql.DB, account sso.Account) (bool, error) {
+	if account.Admin {
+		return true, nil
+	}
+
+	return IsAdmin(db, account.UserId)
 }
