@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/danielhoward-me/chaos-backend/admins"
 	"github.com/danielhoward-me/chaos-backend/saves"
 	"github.com/danielhoward-me/chaos-backend/screenshot"
@@ -30,7 +32,7 @@ func createServer() {
 			return err
 		}
 
-		userSaves, err := saves.Get(db, account.UserId)
+		userSaves, err := saves.GetUsers(db, account.UserId)
 		if err != nil {
 			fmt.Println(err)
 			return c.SendStatus(fiber.StatusInternalServerError)
@@ -57,7 +59,7 @@ func createServer() {
 	})
 
 	app.Get("/saves/presets", func(c *fiber.Ctx) error {
-		presets, err := saves.Get(db, "")
+		presets, err := saves.GetUsers(db, "")
 		if err != nil {
 			fmt.Println(err)
 			return c.SendStatus(fiber.StatusInternalServerError)
@@ -112,6 +114,65 @@ func createServer() {
 		return c.JSON(map[string]any{
 			"save": save,
 		})
+	})
+
+	app.Post("/saves/edit", func(c *fiber.Ctx) error {
+		id := c.QueryInt("id", -1)
+
+		if id == -1 {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		var body struct {
+			Name string `json:"name"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		account, failed, err := getAccount(c)
+		if failed {
+			return err
+		}
+
+		exists, err := saves.Exists(db, id)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		if !exists {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+
+		save, err := saves.Get(db, id)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		if save.UserId == "" {
+			if !account.Admin {
+				isAdmin, err := admins.IsAdmin(db, account.UserId)
+				if err != nil {
+					fmt.Println(err)
+					return c.SendStatus(fiber.StatusInternalServerError)
+				}
+
+				if !isAdmin {
+					return c.SendStatus(fiber.StatusForbidden)
+				}
+			}
+		} else if save.UserId != account.UserId {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+
+		if err := saves.ChangeName(db, strconv.FormatInt(int64(id), 10), body.Name); err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		return c.JSON(map[string]bool{"ok": true})
 	})
 
 	app.Get("/screenshot/:hash.jpg", func(c *fiber.Ctx) error {
