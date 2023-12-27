@@ -265,7 +265,7 @@ func createServer() {
 		}
 
 		for i, admin := range admins {
-			account, exists, err := sso.GetUser(admin.UserId, bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], ""))
+			account, exists, err := sso.GetUser(admin.UserId, "", bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], ""))
 			if err != nil {
 				fmt.Println(err)
 				return c.SendStatus(fiber.StatusInternalServerError)
@@ -281,6 +281,76 @@ func createServer() {
 		}
 
 		return c.JSON(admins)
+	})
+
+	app.Delete("/admins/remove", func(c *fiber.Ctx) error {
+		account, failed, err := getAccount(c)
+		if failed {
+			return err
+		}
+
+		if !account.Admin {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+
+		id := c.Query("id")
+		if id == "" {
+			return c.Status(fiber.StatusBadRequest).SendString("id should be a string")
+		}
+
+		if err := admins.Remove(db, id); err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		return c.JSON(map[string]bool{"ok": true})
+	})
+
+	app.Post("/admins/new", func(c *fiber.Ctx) error {
+		account, failed, err := getAccount(c)
+		if failed {
+			return err
+		}
+
+		if !account.Admin {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+
+		var body struct {
+			Username string `json:"username"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.SendStatus(fiber.StatusBadRequest)
+		}
+
+		user, exists, err := sso.GetUser("", body.Username, bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], ""))
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		if !exists {
+			return c.JSON(map[string]bool{"exists": false})
+		}
+
+		id := user.Id
+
+		isAdmin, err := admins.IsAdmin(db, id)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		if isAdmin {
+			return c.JSON(map[string]bool{"exists": true, "alreadyAdmin": true})
+		}
+
+		if err := admins.New(db, user.Id); err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		return c.JSON(map[string]bool{"ok": true, "exists": true, "alreadyAdmin": false})
 	})
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))

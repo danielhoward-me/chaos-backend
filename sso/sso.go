@@ -84,15 +84,21 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 }
 
 type GetUserResponse struct {
-	UserId         string `json:"userId"`
+	Id             string `json:"id"`
 	Username       string `json:"username"`
 	ProfilePicture string `json:"profilePicture"`
 	Successful     bool   `json:"successful"`
 }
 
-func GetUser(id string, authorisation string) (account GetUserResponse, exists bool, err error) {
+func GetUser(id string, username string, authorisation string) (account GetUserResponse, exists bool, err error) {
+	if id == "" && username == "" {
+		err = fmt.Errorf("id or username must be given")
+		return
+	}
+
 	reqBody := map[string]string{
-		"id": id,
+		"id":       id,
+		"username": username,
 	}
 	reqBodyString, err := json.Marshal(reqBody)
 	if err != nil {
