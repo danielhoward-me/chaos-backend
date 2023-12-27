@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 var ssoDevPort int
@@ -21,14 +22,14 @@ func Init(givenSsoDevPort int) {
 	ssoDevPort = givenSsoDevPort
 }
 
-func Get(authorisation string) (account Account, exists bool, err error) {
+func makeSsoRequest(path string, authorisation string, method string, body string) (res *http.Response, err error) {
 	ssoOrigin := "https://sso.danielhoward.me"
 	if ssoDevPort != 0 {
 		ssoOrigin = fmt.Sprintf("http://local.danielhoward.me:%d", ssoDevPort)
 	}
-	ssoPath := fmt.Sprintf("%s/api/oauth2/account", ssoOrigin)
+	ssoPath := fmt.Sprintf("%s/%s", ssoOrigin, path)
 
-	req, err := http.NewRequest("GET", ssoPath, nil)
+	req, err := http.NewRequest(method, ssoPath, strings.NewReader(body))
 	if err != nil {
 		err = fmt.Errorf("failed to create request: %s", err)
 		return
@@ -36,9 +37,34 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", authorisation))
 
 	client := http.DefaultClient
-	res, err := client.Do(req)
+	res, err = client.Do(req)
 	if err != nil {
 		err = fmt.Errorf("failed to do request: %s", err)
+		return
+	}
+
+	return
+}
+
+func readBody[T any](res *http.Response) (body T, err error) {
+	data, err := io.ReadAll(res.Body)
+	if err != nil {
+		err = fmt.Errorf("failed to read body: %s", err)
+		return
+	}
+
+	if err = json.Unmarshal(data, &body); err != nil {
+		err = fmt.Errorf("failed to read body as json: %s", err)
+		return
+	}
+
+	return
+}
+
+func Get(authorisation string) (account Account, exists bool, err error) {
+	res, err := makeSsoRequest("/api/oauth2/account", authorisation, "GET", "")
+	if err != nil {
+		fmt.Println(err)
 		return
 	}
 
@@ -47,14 +73,9 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 		return
 	}
 
-	data, err := io.ReadAll(res.Body)
+	account, err = readBody[Account](res)
 	if err != nil {
-		err = fmt.Errorf("failed to read body: %s", err)
-		return
-	}
-
-	if err = json.Unmarshal(data, &account); err != nil {
-		err = fmt.Errorf("failed to read body as json: %s", err)
+		fmt.Println(err)
 		return
 	}
 
@@ -62,4 +83,41 @@ func Get(authorisation string) (account Account, exists bool, err error) {
 	return
 }
 
-// func GetUser(id string) (account Account, exists bool, err error)
+type GetUserResponse struct {
+	UserId         string `json:"userId"`
+	Username       string `json:"username"`
+	ProfilePicture string `json:"profilePicture"`
+	Successful     bool   `json:"successful"`
+}
+
+func GetUser(id string, authorisation string) (account GetUserResponse, exists bool, err error) {
+	reqBody := map[string]string{
+		"id": id,
+	}
+	reqBodyString, err := json.Marshal(reqBody)
+	if err != nil {
+		return
+	}
+
+	res, err := makeSsoRequest("/api/get-user", authorisation, "POST", string(reqBodyString))
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	body, err := readBody[GetUserResponse](res)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	if !body.Successful {
+		exists = false
+		return
+	}
+
+	exists = true
+	account = body
+
+	return
+}

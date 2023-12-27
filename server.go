@@ -114,9 +114,11 @@ func createServer() {
 				return c.SendStatus(fiber.StatusBadRequest)
 			}
 
-			if isAdmin {
-				userId = "0"
+			if !isAdmin {
+				return c.SendStatus(fiber.StatusForbidden)
 			}
+
+			userId = "0"
 		}
 
 		save, err := saves.Create(db, body.Name, body.Data, userId)
@@ -125,7 +127,7 @@ func createServer() {
 			return c.SendStatus(fiber.StatusInternalServerError)
 		}
 
-		screenshot.Queue(save.Data)
+		screenshot.Queue(save.Data, false)
 
 		return c.JSON(map[string]any{
 			"save": save,
@@ -205,8 +207,29 @@ func createServer() {
 			return c.SendStatus(fiber.StatusBadRequest)
 		}
 
+		forceNew := false
+
+		if body.ForceNew {
+			account, failed, err := getAccount(c)
+			if failed {
+				return err
+			}
+
+			isAdmin, err := admins.IsLocalAdmin(db, account)
+			if err != nil {
+				fmt.Println(err)
+				return c.SendStatus(fiber.StatusInternalServerError)
+			}
+
+			if !isAdmin {
+				return c.SendStatus(fiber.StatusForbidden)
+			}
+
+			forceNew = true
+		}
+
 		data := body.Data
-		screenshot.Queue(data)
+		screenshot.Queue(data, forceNew)
 
 		return c.JSON(map[string]any{
 			"hash": screenshotUtils.Hash(data),
@@ -223,6 +246,41 @@ func createServer() {
 		return c.JSON(map[string]any{
 			"status": screenshot.GetStatus(hash),
 		})
+	})
+
+	app.Get("/admins", func(c *fiber.Ctx) error {
+		account, failed, err := getAccount(c)
+		if failed {
+			return err
+		}
+
+		if !account.Admin {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+
+		admins, err := admins.GetAll(db)
+		if err != nil {
+			fmt.Println(err)
+			return c.SendStatus(fiber.StatusInternalServerError)
+		}
+
+		for i, admin := range admins {
+			account, exists, err := sso.GetUser(admin.UserId, bearerRegex.ReplaceAllString(c.GetReqHeaders()["Authorization"], ""))
+			if err != nil {
+				fmt.Println(err)
+				return c.SendStatus(fiber.StatusInternalServerError)
+			}
+
+			if exists {
+				admins[i].Username = account.Username
+				admins[i].ProfilePicture = account.ProfilePicture
+			} else {
+				admins[i].Username = "Unkown"
+				admins[i].ProfilePicture = "https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y"
+			}
+		}
+
+		return c.JSON(admins)
 	})
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("PORT")))

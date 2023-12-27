@@ -7,13 +7,14 @@ import (
 )
 
 type Request struct {
-	Data string `json:"data"`
+	Data     string `json:"data"`
+	ForceNew bool   `json:"forceNew"`
 }
 
-func Queue(data string) {
+func Queue(data string, forceNew bool) {
 	hash := utils.Hash(data)
 
-	if utils.Exists(hash) || worker.InQueue(hash) {
+	if !forceNew && (utils.Exists(hash) || worker.InQueue(hash)) {
 		return
 	}
 
