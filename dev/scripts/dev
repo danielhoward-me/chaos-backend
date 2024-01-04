@@ -12,10 +12,10 @@ export PGDATABASE="chaos"
 export PGSSLMODE="disable"
 
 EXTRA_ARGS=""
-if [ "$#" -gt 0 ]; then
+if [ "$#" -gt 0 ] && [ "$1" -ne "-1" ]; then
 	EXTRA_ARGS="$EXTRA_ARGS -sso-dev-port $1"
 fi
-if [ "$#" -gt 1 ]; then
+if [ "$#" -gt 1 ] && [ "$2" -ne "-1" ]; then
 	EXTRA_ARGS="$EXTRA_ARGS -chaos-dev-port $2"
 fi
 
