@@ -194,6 +194,7 @@ func createServer() {
 		hash := c.Params("hash")
 
 		if !screenshotUtils.Exists(hash) {
+			c.Append("Cache-Control", "no-cache")
 			return c.SendStatus(fiber.StatusNotFound)
 		}
 
