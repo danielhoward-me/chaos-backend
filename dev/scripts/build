@@ -1,0 +1,7 @@
+#!/bin/bash
+
+cd "$( dirname "${BASH_SOURCE[0]}" )/../.."
+
+VERSION="1.0.0"
+docker build -t danielnhoward/chaos-backend:$VERSION -t danielnhoward/chaos-backend:latest .
+docker push danielnhoward/chaos-backend --all-tags
