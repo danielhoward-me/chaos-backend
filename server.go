@@ -1,8 +1,6 @@
 package main
 
 import (
-	"strconv"
-
 	"github.com/danielhoward-me/chaos-backend/admins"
 	"github.com/danielhoward-me/chaos-backend/saves"
 	"github.com/danielhoward-me/chaos-backend/screenshot"
@@ -12,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

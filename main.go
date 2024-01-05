@@ -1,13 +1,13 @@
 package main
 
 import (
-	"database/sql"
-	"flag"
-	"os"
-
 	"github.com/danielhoward-me/chaos-backend/database"
 	"github.com/danielhoward-me/chaos-backend/screenshot/worker"
 	"github.com/danielhoward-me/chaos-backend/sso"
+
+	"database/sql"
+	"flag"
+	"os"
 )
 
 var db *sql.DB
